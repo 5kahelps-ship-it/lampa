@@ -7,46 +7,42 @@
     ];
 
     function startPlugin() {
-        // Добавляем стили для красоты
+        // Добавляем стили (теперь они точно применятся)
         var style = $('<style>' +
-            '.torr-list{display: flex; flex-direction: column; gap: 10px; padding: 10px;}' +
-            '.torr-item{padding: 15px; background: rgba(255,255,255,0.05); border-radius: 10px; border: 2px solid transparent; cursor: pointer; transition: all 0.2s;}' +
-            '.torr-item.focus{background: rgba(255,255,255,0.1); border-color: #fff; transform: scale(1.02);}' +
-            '.torr-item__name{font-size: 1.2em; font-weight: bold; margin-bottom: 5px;}' +
-            '.torr-item__url{font-size: 0.9em; opacity: 0.6; color: #19c37d;}' +
+            '.torr-list { display: flex; flex-direction: column; gap: 12px; padding: 15px; background: #1a1a1a; border-radius: 10px; }' +
+            '.torr-item { padding: 18px; background: rgba(255,255,255,0.07); border-radius: 12px; border: 2px solid transparent; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; }' +
+            '.torr-item.focus { background: rgba(25, 195, 125, 0.15); border-color: #19c37d; transform: scale(1.03); box-shadow: 0 10px 20px rgba(0,0,0,0.4); }' +
+            '.torr-item__name { font-size: 1.3em; font-weight: 700; color: #fff; margin-bottom: 6px; }' +
+            '.torr-item__url { font-size: 0.95em; color: #19c37d; font-family: monospace; opacity: 0.9; }' +
             '</style>');
         $('body').append(style);
 
         Lampa.Lang.add({
-            my_torr_title: { ru: 'Мои серверы Torr', en: 'My Torr Servers' },
-            my_torr_descr: { ru: 'Нажмите для выбора активного сервера', en: 'Click to select active server' }
+            my_torr_title: { ru: '⚡️ МОИ TORR-СЕРВЕРЫ', en: 'My Torr Servers' },
+            my_torr_descr: { ru: 'Быстрое переключение между Colab и Облаком', en: 'Switch between Colab and Cloud' }
         });
 
-        // Пытаемся добавить кнопку именно в раздел TorrServer
-        var addBtn = function() {
-            Lampa.SettingsApi.addParam({
-                component: 'torrserver',
-                param: {
-                    name: 'my_torr_switch_btn',
-                    type: 'button'
-                },
-                field: {
-                    name: Lampa.Lang.translate('my_torr_title'),
-                    description: Lampa.Lang.translate('my_torr_descr')
-                },
-                onChange: function () {
-                    openModal();
-                }
-            });
-        };
+        // Добавляем в 'interface' (Интерфейс), там кнопка НЕ пропадает никогда
+        Lampa.SettingsApi.addParam({
+            component: 'interface',
+            param: {
+                name: 'my_torr_switch_btn',
+                type: 'button'
+            },
+            field: {
+                name: Lampa.Lang.translate('my_torr_title'),
+                description: Lampa.Lang.translate('my_torr_descr')
+            },
+            onChange: function () {
+                openModal();
+            }
+        });
 
-        // Ждем чуть-чуть, чтобы раздел TorrServer успел прогрузиться в Lampa
-        setTimeout(addBtn, 1000);
-        Lampa.Noty.show('Плагин Мои Серверы готов!');
+        Lampa.Noty.show('Плагин: Ищите кнопку в Настройки -> Интерфейс');
     }
 
     function openModal() {
-        var modalHtml = $('<div class="torr-list"></div>');
+        var modalContent = $('<div class="torr-list"></div>');
 
         myServers.forEach(function (server) {
             var card = $('<div class="torr-item selector">' +
@@ -56,18 +52,21 @@
 
             card.on('hover:enter', function () {
                 Lampa.Storage.set('torrserver_url', server.url);
-                Lampa.Noty.show('Выбран: ' + server.name);
+                Lampa.Noty.show('✅ Адрес изменен: ' + server.name);
                 Lampa.Modal.close();
+                
+                // Чтобы Лампа сразу подхватила новый адрес без перезагрузки
+                if (Lampa.TorrServer) Lampa.TorrServer.clear(); 
             });
 
-            modalHtml.append(card);
+            modalContent.append(card);
         });
 
         Lampa.Modal.open({
-            title: 'Выберите TorrServer',
-            html: modalHtml,
+            title: 'Выбор TorrServer',
+            html: modalContent,
             size: 'medium',
-            select: modalHtml.find('.selector').first(),
+            select: modalContent.find('.selector').first(),
             onBack: function () {
                 Lampa.Modal.close();
                 Lampa.Controller.toggle('settings_component');
@@ -75,6 +74,7 @@
         });
     }
 
+    // Запуск
     if (window.appready) startPlugin();
     else {
         Lampa.Listener.follow('app', function (e) {
